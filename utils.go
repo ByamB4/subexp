@@ -13,7 +13,7 @@ func validURL(s string) bool {
 	return r.MatchString(s)
 }
 
-func fetchJSON(url string, wrapper interface{}) error {
+func jsonGET(url string, wrapper interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
