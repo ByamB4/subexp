@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 func validURL(s string) bool {
@@ -38,4 +39,18 @@ func httpGet(u string) ([]byte, error) {
 		return []byte{}, err
 	}
 	return raw, nil
+}
+
+func cleanURL(u string, domain string) string {
+	ind := strings.Index(u, domain)
+	u = u[:ind+len(domain)]
+
+	
+	prefixes := []string{"http://", "https://", "www."}
+
+	for _, p := range prefixes {
+		u = strings.TrimPrefix(u, p)
+	}
+
+	return u
 }

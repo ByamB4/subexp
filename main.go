@@ -39,6 +39,7 @@ func main() {
 		f.crtSh,
 		f.hackerTarget,
 		f.certSpotter,
+		f.wayArchive,
 	}
 
 	out := make(chan string)

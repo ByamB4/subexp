@@ -147,6 +147,23 @@ func (f fetch) bufferOverrun() ([]string, error) {
 func (f fetch) certSpotter() ([]string, error) {
 	ret := make([]string, 0)
 
+	resp, er := http.Get(fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", f.domain))
+
+	if er != nil {
+		return []string{}, nil
+	}
+
+	defer resp.Body.Close()
+	body, er := ioutil.ReadAll(resp.Body)
+
+	if er != nil {
+		return []string{}, nil
+	}
+
+	if strings.Contains(string(body), "rate_limited") {
+		return []string{}, nil
+	}
+
 	wrapper := []struct {
 		ID           string   `json:"id"`
 		TbsSha256    string   `json:"tbs_sha256"`
@@ -156,17 +173,34 @@ func (f fetch) certSpotter() ([]string, error) {
 		NotAfter     string   `json:"not_after"`
 	}{}
 
-	err := jsonGET(
-		fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", f.domain),
-		&wrapper,
-	)
+	json.NewDecoder(bytes.NewReader(body)).Decode(&wrapper)
+	for _, r := range wrapper {
+		ret = append(ret, r.DNSNames...)
+	}
+
+	return ret, nil
+}
+
+func (f fetch) wayArchive() ([]string, error) {
+	ret := make([]string, 0)
+
+	raw, err := httpGet(fmt.Sprintf("https://web.archive.org/cdx/search/cdx?url=*.%s/*&output=text&fl=original&collapse=urlkey", f.domain))
 
 	if err != nil {
 		return ret, err
 	}
 
-	for _, r := range wrapper {
-		ret = append(ret, r.DNSNames...)
+	sc := bufio.NewScanner(bytes.NewReader(raw))
+
+	duplicated := make(map[string]bool)
+
+	for sc.Scan() {
+		url := cleanURL(sc.Text(), f.domain)
+		if _, ok := duplicated[url]; ok {
+			continue
+		}
+		duplicated[url] = true
+		ret = append(ret, url)
 	}
 
 	return ret, nil
