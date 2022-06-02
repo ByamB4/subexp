@@ -1,3 +1,3 @@
-module main.go
+module github.com/byamb4/subexp
 
-go 1.17
+go 1.18
